@@ -13,6 +13,21 @@ if (!is_string($search)) {
 
 $search = trim($search);
 
+$subject = filter_input(
+    INPUT_GET,
+    'subject',
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]]
+);
+
+$available = filter_input(
+    INPUT_GET,
+    'available',
+    FILTER_VALIDATE_INT
+);
+
+$pattern = '%' . $search . '%';
+
 $sql = "
     SELECT
         books.title,
@@ -23,16 +38,27 @@ $sql = "
         (books.copies - books.on_loan) AS available
     FROM books
     JOIN subjects ON books.subject_id = subjects.id
-    WHERE books.title LIKE :search
-       OR books.author LIKE :search
-    ORDER BY books.title
+    WHERE (books.title LIKE :title OR books.author LIKE :author)
 ";
 
-$stmt = $pdo->prepare($sql);
+$params = [
+    ':title' => $pattern,
+    ':author' => $pattern
+];
 
-$stmt->execute([
-    'search' => '%' . $search . '%'
-]);
+if (is_int($subject)) {
+    $sql .= ' AND books.subject_id = :subject';
+    $params[':subject'] = $subject;
+}
+
+if ($available === 1) {
+    $sql .= ' AND (books.copies - books.on_loan) > 0';
+}
+
+$sql .= ' ORDER BY books.title';
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 
 $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
