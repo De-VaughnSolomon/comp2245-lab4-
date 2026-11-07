@@ -26,6 +26,7 @@ $available = filter_input(
     FILTER_VALIDATE_INT
 );
 
+
 $pattern = '%' . $search . '%';
 
 $sql = "
